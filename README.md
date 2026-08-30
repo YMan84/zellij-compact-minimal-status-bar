@@ -1,7 +1,9 @@
 # ⚡ zj-status-bar ⚡
 
-A minimal, transparent status bar plugin for [`zellij`](https://zellij.dev/), built on top of
+A opinionated, minimal transparent status bar plugin for [`zellij`](https://zellij.dev/), built on top of
 the built-in `compact-bar` plugin (zellij `0.45.x`), repackaged and customized.
+
+
 
 ## What it looks like / does
 
