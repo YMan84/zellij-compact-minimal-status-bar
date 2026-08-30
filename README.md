@@ -7,7 +7,7 @@ zellij-compact-status-bar:
 ![image](https://github.com/YMan84/zellij-compact-minimal-status-bar/blob/main/assets/compact-bar.jpg?raw=true)
 
 stock compact:
-![image](https://github.com/YMan84/zellij-compact-minimal-status--bar/blob/main/assets/stock-compact-bar.jpg?raw=true)
+![image](https://github.com/YMan84/zellij-compact-minimal-status-bar/blob/main/assets/stock-compact-bar.jpg?raw=true)
 
 
 ## What it looks like / does
