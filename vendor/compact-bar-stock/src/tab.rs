@@ -21,13 +21,6 @@ fn cursors<'a>(
     (cursors, len)
 }
 
-fn fg(color: PaletteColor) -> ansi_term::Color {
-    match color {
-        PaletteColor::Rgb((r, g, b)) => ansi_term::Color::RGB(r, g, b),
-        PaletteColor::EightBit(c) => ansi_term::Color::Fixed(c),
-    }
-}
-
 pub fn render_tab(
     text: String,
     tab: &TabInfo,
@@ -61,6 +54,7 @@ pub fn render_tab(
     } else {
         palette.ribbon_unselected.base
     };
+    let separator_fill_color = palette.text_unselected.background;
     let background_color = if dimmed {
         palette.ribbon_unselected.background
     } else {
@@ -71,29 +65,29 @@ pub fn render_tab(
     } else {
         style!(foreground_color, background_color).bold()
     };
-    let right_separator = ansi_term::Style::new().fg(fg(foreground_color)).paint(separator);
-    let mut tab_text_len = text.width() + separator_width + 2; // + 2 for padding
+    let left_separator = style!(separator_fill_color, background_color).paint(separator);
+    let mut tab_text_len = text.width() + (separator_width * 2) + 2; // + 2 for padding
 
     let tab_styled_text = text_style.paint(format!(" {} ", text));
 
+    let right_separator = style!(background_color, separator_fill_color).paint(separator);
     let tab_styled_text = if !focused_clients.is_empty() {
         let (cursor_section, extra_length) =
             cursors(focused_clients, palette.multiplayer_user_colors);
         tab_text_len += extra_length;
-        let cursor_beginning = text_style.paint("[".to_string());
-        let cursor_end = text_style.paint("]".to_string());
         let mut s = String::new();
+        let cursor_beginning = text_style.paint("[").to_string();
+        let cursor_section = ANSIStrings(&cursor_section).to_string();
+        let cursor_end = text_style.paint("]").to_string();
+        s.push_str(&left_separator.to_string());
         s.push_str(&tab_styled_text.to_string());
-        s.push_str(&cursor_beginning.to_string());
-        s.push_str(&ANSIStrings(&cursor_section).to_string());
-        s.push_str(&cursor_end.to_string());
+        s.push_str(&cursor_beginning);
+        s.push_str(&cursor_section);
+        s.push_str(&cursor_end);
         s.push_str(&right_separator.to_string());
         s
     } else {
-        let mut s = String::new();
-        s.push_str(&tab_styled_text.to_string());
-        s.push_str(&right_separator.to_string());
-        s
+        ANSIStrings(&[left_separator, tab_styled_text, right_separator]).to_string()
     };
 
     LinePart {

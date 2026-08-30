@@ -17,6 +17,7 @@ use crate::line::tab_line;
 use crate::tab::tab_style;
 use crate::tooltip::TooltipRenderer;
 
+static ARROW_SEPARATOR: &str = "";
 
 const CONFIG_IS_TOOLTIP: &str = "is_tooltip";
 const CONFIG_TOGGLE_TOOLTIP_KEY: &str = "tooltip";
@@ -76,10 +77,6 @@ register_plugin!(State);
 
 impl ZellijPlugin for State {
     fn load(&mut self, configuration: BTreeMap<String, String>) {
-        // Selectable on load so a file-loaded plugin can be focused and the
-        // permission prompt can be accepted (y/n). Flipped back to unselectable once
-        // permissions are granted (see update()).
-        set_selectable(true);
         let plugin_ids = get_plugin_ids();
         self.own_plugin_id = Some(plugin_ids.plugin_id);
         self.own_client_id = plugin_ids.client_id;
@@ -118,12 +115,6 @@ impl ZellijPlugin for State {
             },
             Event::SystemClipboardFailure => self.handle_clipboard_failure(),
             Event::InputReceived => self.handle_input_received(),
-            Event::PermissionRequestResult(_) => {
-                // Permissions granted/denied: stop being focusable so the bar behaves
-                // like a normal passive status bar.
-                set_selectable(false);
-                false
-            },
             _ => false,
         }
     }
@@ -170,21 +161,7 @@ impl State {
     }
 
     fn setup_subscriptions(&self) {
-        // Selectable on load so a file-loaded plugin can be focused and the permission
-        // prompt can be accepted with y/n. setup_subscriptions takes &self, so mark it
-        // selectable via the plugin_state setter in load() instead (called right before).
-        // We flip it back to unselectable once permissions are granted (see update()).
-
-        // A plugin loaded from disk (file:) is not treated as built-in and must
-        // explicitly request the permissions needed to subscribe to these events.
-        // Built-in (zellij:) instances are granted everything automatically.
-        request_permission(&[
-            PermissionType::ReadApplicationState,
-            PermissionType::ChangeApplicationState,
-            PermissionType::MessageAndLaunchOtherPlugins,
-            PermissionType::RunActionsAsUser,
-            PermissionType::Reconfigure,
-        ]);
+        set_selectable(false);
 
         let events = if self.is_tooltip {
             vec![
@@ -202,7 +179,6 @@ impl State {
                 EventType::InputReceived,
                 EventType::SystemClipboardFailure,
                 EventType::InitialKeybinds,
-                EventType::PermissionRequestResult,
             ]
         };
 
@@ -532,10 +508,15 @@ impl State {
     }
 
     fn render_background_with_text(&self, text: &str) {
-        // Transparent bar: don't paint a row-wide background. Print the styled text,
-        // then reset attributes and clear to end of line so the surrounding row shows
-        // through the terminal background.
-        print!("{}\u{1b}[0m\u{1b}[49m\u{1b}[0K", text);
+        let background = self.mode_info.style.colors.text_unselected.background;
+        match background {
+            PaletteColor::Rgb((r, g, b)) => {
+                print!("{}\u{1b}[48;2;{};{};{}m\u{1b}[0K", text, r, g, b);
+            },
+            PaletteColor::EightBit(color) => {
+                print!("{}\u{1b}[48;5;{}m\u{1b}[0K", text, color);
+            },
+        }
     }
 
     fn render_tabs(&mut self, cols: usize) {

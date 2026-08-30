@@ -1,26 +1,26 @@
-# [0.3.0](https://github.com/cristiand391/zj-status-bar/compare/0.2.0...0.3.0) (2024-06-08)
+# Changelog
 
+## [0.45.0] - 2026-08-30
 
-### Features
+Rebuilt on the stock zellij `compact-bar` (v0.45.x) and customized.
 
-* tab alerts ([#4](https://github.com/cristiand391/zj-status-bar/issues/4)) ([81a0d4b](https://github.com/cristiand391/zj-status-bar/commit/81a0d4b4bb7515b676770abbe628a1b1524662bc))
+### Added
+- New project layout: plugin source repackaged at the crate root (`src/`), built from inside
+  the zellij `v0.45.0` source tree for ABI compatibility.
 
+### Changed
+- Transparent bar background — the terminal shows through the status row.
+- Colored tab pills separated by solid `│` chips instead of powerline arrows.
+- Bar is selectable on first load so the file-loaded plugin's permission prompt can be
+  accepted with `y` (focus the bar, then `y`); it returns to non-selectable once granted.
 
+### Removed
+- The `Zellij` label.
+- The session-name / breadcrumb chip at the far left.
+- The `LOCKED` / `NORMAL` mode pill on the far right.
+- The `F1 Tooltip` pill on the far right (the tooltip action-bar still works).
 
-# [0.2.0](https://github.com/cristiand391/zj-status-bar/compare/0f3799d5acdf88ab913dbde2eb054d6390c1bc9b...0.2.0) (2024-04-01)
-
-
-### Bug Fixes
-
-* improve first load/permission handling ([0f3799d](https://github.com/cristiand391/zj-status-bar/commit/0f3799d5acdf88ab913dbde2eb054d6390c1bc9b))
-* properly center current mode ([2de3d60](https://github.com/cristiand391/zj-status-bar/commit/2de3d60446dfe8fe9d9037122d77daf927be8d7d))
-
-
-### Features
-
-* fullscreen indicator in current tab ([062202b](https://github.com/cristiand391/zj-status-bar/commit/062202b143b39a596924c9fec700e0038ff969da))
-* rename plugin ([8160eb7](https://github.com/cristiand391/zj-status-bar/commit/8160eb76da369388d293b4b8f9b92ef9177a4b59))
-* show tab indexes ([6df6448](https://github.com/cristiand391/zj-status-bar/commit/6df64484182945d1ca570a61bb02a07182a2fa6e))
-
-
-
+### Fixed (vs. loading a stock-like plugin from a file)
+- The plugin explicitly requests the permissions it requires. A `file:`-loaded plugin is not
+  treated as built-in, so without `request_permission` it received no `TabUpdate` /
+  `ModeUpdate` / `PaneUpdate` events and rendered as an invisible bar.

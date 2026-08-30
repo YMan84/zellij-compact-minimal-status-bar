@@ -1,7 +1,7 @@
 use ansi_term::ANSIStrings;
 use unicode_width::UnicodeWidthStr;
 
-use crate::{LinePart, TabRenderData};
+use crate::{LinePart, TabRenderData, ARROW_SEPARATOR};
 use zellij_tile::prelude::*;
 use zellij_tile_utils::style;
 
@@ -344,13 +344,33 @@ impl<'a> TabLinePrefixBuilder<'a> {
         }
     }
 
-    fn build(&self, session_name: Option<&str>) -> TabLinePrefix {
-        // Render tabs flush to the left edge with no leading session-name / breadcrumb
-        // chip, so the area before the first tab is transparent.
-        let _ = session_name;
+    fn build(&self, session_name: Option<&str>, mode: InputMode) -> TabLinePrefix {
+        let mut parts = vec![self.create_zellij_part()];
+        let mut used_len = parts.get(0).map_or(0, |p| p.len);
+        let mut breadcrumb_range = None;
+
+        if let Some(name) = session_name {
+            if !self.breadcrumb_ancestry.is_empty() {
+                if let Some((mut breadcrumb_parts, range, breadcrumb_len)) =
+                    self.create_breadcrumb_parts(name, used_len)
+                {
+                    used_len += breadcrumb_len;
+                    breadcrumb_range = Some(range);
+                    parts.append(&mut breadcrumb_parts);
+                }
+            } else if let Some(name_part) = self.create_session_name_part(name, used_len) {
+                used_len += name_part.len;
+                parts.push(name_part);
+            }
+        }
+
+        if let Some(mode_part) = self.create_mode_part(mode, used_len) {
+            parts.push(mode_part);
+        }
+
         TabLinePrefix {
-            parts: Vec::new(),
-            breadcrumb_range: None,
+            parts,
+            breadcrumb_range,
         }
     }
 
@@ -412,6 +432,22 @@ impl<'a> TabLinePrefixBuilder<'a> {
         Some((parts, (ancestor_start, ancestor_end), total_len))
     }
 
+    fn create_zellij_part(&self) -> LinePart {
+        let prefix_text = " Zellij ";
+        let colors = self.get_text_colors();
+        let text_style = if self.dimmed {
+            style!(colors.text, colors.background).italic()
+        } else {
+            style!(colors.text, colors.background).bold()
+        };
+
+        LinePart {
+            part: text_style.paint(prefix_text).to_string(),
+            len: prefix_text.chars().count(),
+            tab_index: None,
+        }
+    }
+
     fn create_session_name_part(&self, name: &str, used_len: usize) -> Option<LinePart> {
         let name_part = format!("({})", name);
         let name_part_len = name_part.width();
@@ -426,6 +462,37 @@ impl<'a> TabLinePrefixBuilder<'a> {
             Some(LinePart {
                 part: text_style.paint(name_part).to_string(),
                 len: name_part_len,
+                tab_index: None,
+            })
+        } else {
+            None
+        }
+    }
+
+    fn create_mode_part(&self, mode: InputMode, used_len: usize) -> Option<LinePart> {
+        let mode_text = format!(" {} ", format!("{:?}", mode).to_uppercase());
+        let mode_len = mode_text.width();
+
+        if self.cols.saturating_sub(used_len) >= mode_len {
+            let colors = self.get_text_colors();
+            let style = if self.dimmed {
+                style!(colors.text, colors.background).italic()
+            } else {
+                match mode {
+                    InputMode::Locked => {
+                        style!(self.palette.text_unselected.emphasis_3, colors.background)
+                    },
+                    InputMode::Normal => {
+                        style!(self.palette.text_unselected.emphasis_2, colors.background)
+                    },
+                    _ => style!(self.palette.text_unselected.emphasis_0, colors.background),
+                }
+                .bold()
+            };
+
+            Some(LinePart {
+                part: style.paint(mode_text).to_string(),
+                len: mode_len,
                 tab_index: None,
             })
         } else {
@@ -467,8 +534,13 @@ impl RightSideElementsBuilder {
 
         let mut elements = Vec::new();
 
-        // We intentionally render nothing on the right side (no swap-layout status,
-        // no mode pill, no tooltip pill) for a minimal bar.
+        if let Some(ref tooltip_key) = config.toggle_tooltip_key {
+            elements.push(self.create_tooltip_indicator(tooltip_key, config.tooltip_is_active));
+        }
+
+        if let Some(swap_status) = self.create_swap_layout_status(config, available_space) {
+            elements.push(swap_status);
+        }
 
         elements
     }
@@ -530,6 +602,127 @@ impl RightSideElementsBuilder {
 
         None
     }
+
+    fn create_tooltip_indicator(&self, toggle_key: &str, is_active: bool) -> LinePart {
+        let key_text = toggle_key;
+        let key = if self.dimmed {
+            Text::new(key_text).disabled().opaque()
+        } else {
+            Text::new(key_text).color_all(3).opaque()
+        };
+        let ribbon_text = "Tooltip";
+        let mut ribbon = Text::new(ribbon_text);
+
+        if self.dimmed {
+            ribbon = ribbon.disabled();
+        } else if is_active {
+            ribbon = ribbon.selected();
+        }
+
+        LinePart {
+            part: format!("{} {}", serialize_text(&key), serialize_ribbon(&ribbon)),
+            len: key_text.chars().count() + ribbon_text.chars().count() + 6,
+            tab_index: None,
+        }
+    }
+
+    fn create_swap_layout_status(
+        &self,
+        config: &TabLineConfig,
+        max_len: usize,
+    ) -> Option<LinePart> {
+        let swap_layout_name = config.active_swap_layout_name.as_ref()?;
+
+        let mut layout_name = format!(" {} ", swap_layout_name);
+        layout_name.make_ascii_uppercase();
+        let layout_name_len = layout_name.len() + 3;
+
+        let colors = SwapLayoutColors {
+            bg: self.palette.text_unselected.background,
+            fg: self.palette.ribbon_unselected.background,
+            green: self.palette.ribbon_selected.background,
+        };
+
+        let separator = tab_separator(self.capabilities);
+        let styled_parts = self.create_swap_layout_styled_parts(
+            &layout_name,
+            config.mode,
+            config.is_swap_layout_dirty,
+            &colors,
+            separator,
+        );
+
+        let indicator = format!("{}{}{}", styled_parts.0, styled_parts.1, styled_parts.2);
+        let (part, full_len) = (indicator.clone(), layout_name_len);
+        let short_len = layout_name_len + 1;
+
+        if full_len <= max_len {
+            Some(LinePart {
+                part,
+                len: full_len,
+                tab_index: None,
+            })
+        } else if short_len <= max_len && config.mode != InputMode::Locked {
+            Some(LinePart {
+                part: indicator,
+                len: short_len,
+                tab_index: None,
+            })
+        } else {
+            None
+        }
+    }
+
+    fn create_swap_layout_styled_parts(
+        &self,
+        layout_name: &str,
+        mode: InputMode,
+        is_dirty: bool,
+        colors: &SwapLayoutColors,
+        separator: &str,
+    ) -> (String, String, String) {
+        if self.dimmed {
+            let text_style = style!(colors.bg, colors.fg).italic();
+            return (
+                style!(colors.bg, colors.fg).paint(separator).to_string(),
+                text_style.paint(layout_name).to_string(),
+                style!(colors.fg, colors.bg).paint(separator).to_string(),
+            );
+        }
+        match mode {
+            InputMode::Locked => (
+                style!(colors.bg, colors.fg).paint(separator).to_string(),
+                style!(colors.bg, colors.fg)
+                    .italic()
+                    .paint(layout_name)
+                    .to_string(),
+                style!(colors.fg, colors.bg).paint(separator).to_string(),
+            ),
+            _ if is_dirty => (
+                style!(colors.bg, colors.fg).paint(separator).to_string(),
+                style!(colors.bg, colors.fg)
+                    .bold()
+                    .paint(layout_name)
+                    .to_string(),
+                style!(colors.fg, colors.bg).paint(separator).to_string(),
+            ),
+            _ => (
+                style!(colors.bg, colors.green).paint(separator).to_string(),
+                style!(colors.bg, colors.green)
+                    .bold()
+                    .paint(layout_name)
+                    .to_string(),
+                style!(colors.green, colors.bg).paint(separator).to_string(),
+            ),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct SwapLayoutColors {
+    bg: PaletteColor,
+    fg: PaletteColor,
+    green: PaletteColor,
 }
 
 pub struct TabLineBuilder {
@@ -575,7 +768,7 @@ impl TabLineBuilder {
             breadcrumb_ancestry,
         );
 
-        let prefix_result = prefix_builder.build(session_name);
+        let prefix_result = prefix_builder.build(session_name, self.config.mode);
         let mut prefix = prefix_result.parts;
         let breadcrumb_range = prefix_result.breadcrumb_range;
         let prefix_len = calculate_total_length(&prefix);
@@ -652,8 +845,10 @@ impl TabLineBuilder {
     }
 
     fn create_spacer(&self, space: usize) -> LinePart {
-        // Transparent spacer: plain spaces with no background so the row shows through.
-        let buffer = " ".repeat(space);
+        let bg = self.palette.text_unselected.background;
+        let buffer = (0..space)
+            .map(|_| style!(bg, bg).paint(" ").to_string())
+            .collect::<String>();
 
         LinePart {
             part: buffer,
@@ -663,6 +858,10 @@ impl TabLineBuilder {
     }
 }
 
-pub fn tab_separator(_capabilities: PluginCapabilities) -> &'static str {
-    "│" // solid rectangular chip divider between tabs
+pub fn tab_separator(capabilities: PluginCapabilities) -> &'static str {
+    if !capabilities.arrow_fonts {
+        ARROW_SEPARATOR
+    } else {
+        ""
+    }
 }
