@@ -11,14 +11,10 @@ minimal, **transparent** bottom status bar for zellij **0.45.x**.
 - Remote: `origin` → https://github.com/YMan84/zellij-minimal-status-bar.git
 - Pristine stock reference is vendored under `vendor/compact-bar-stock/`.
 
-## The most important gotcha: how/where this builds
+## Building
 
-**Do NOT build with the repo's `Cargo.toml` against crates.io `zellij-tile`.** Doing so
-produces a wasm that renders as an invisible/blank bar in zellij 0.45.x. Getting a working
-plugin requires compiling the *same* in-tree `zellij-tile`/`zellij-tile-utils` that the user's
-zellij binary embeds.
-
-Correct build procedure:
+We build from inside the zellij `v0.45.0` source tree, reusing zellij's own build setup
+(pinned `zellij-tile`/`zellij-tile-utils`, toolchain, and `wasm32-wasip1` target).
 
 ```
 git clone --branch v0.45.0 https://github.com/zellij-org/zellij.git
@@ -88,8 +84,8 @@ Diff with: `diff -r vendor/compact-bar-stock/src src/`
 - `src/` — customized plugin source (the real work lives in `main.rs`, `line.rs`, `tab.rs`).
 - `vendor/compact-bar-stock/` — pristine stock `v0.45.0` compact-bar source, for diffing only.
 - `scripts/fetch-stock.sh` — regenerates `vendor/compact-bar-stock` from upstream.
-- `Cargo.toml` / `.cargo/config.toml` — **reference only**; building here won't produce a
-  working wasm (see the build gotcha above).
+- `Cargo.toml` / `.cargo/config.toml` — **reference only**; the working wasm is built from
+  the zellij source tree (see [Building](#building)), not by `cargo build`ing this repo.
 - `README.md`, `CHANGELOG.md` — kept current with the customizations and permission docs.
 
 ## Status / history
