@@ -71,8 +71,9 @@ pub fn render_tab(
     } else {
         style!(foreground_color, background_color).bold()
     };
-    let right_separator = ansi_term::Style::new().fg(fg(foreground_color)).paint(separator);
-    let mut tab_text_len = text.width() + separator_width + 2; // + 2 for padding
+    let left_separator = ansi_term::Style::new().fg(fg(background_color)).paint("");
+    let right_separator = ansi_term::Style::new().fg(fg(background_color)).paint("");
+    let mut tab_text_len = text.width() + (separator_width * 2) + 2; // + 2 for padding
 
     let tab_styled_text = text_style.paint(format!(" {} ", text));
 
@@ -83,6 +84,7 @@ pub fn render_tab(
         let cursor_beginning = text_style.paint("[".to_string());
         let cursor_end = text_style.paint("]".to_string());
         let mut s = String::new();
+        s.push_str(&left_separator.to_string());
         s.push_str(&tab_styled_text.to_string());
         s.push_str(&cursor_beginning.to_string());
         s.push_str(&ANSIStrings(&cursor_section).to_string());
@@ -91,6 +93,7 @@ pub fn render_tab(
         s
     } else {
         let mut s = String::new();
+        s.push_str(&left_separator.to_string());
         s.push_str(&tab_styled_text.to_string());
         s.push_str(&right_separator.to_string());
         s

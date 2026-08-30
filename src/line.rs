@@ -16,7 +16,7 @@ pub fn tab_line(
     cols: usize,
     toggle_tooltip_key: Option<String>,
     tooltip_is_active: bool,
-    hostname: &str,
+    message: &str,
 ) -> TabLineOutput {
     let dimmed = mode_info.session_ascended == Some(true) || mode_info.session_dimmed == Some(true);
     let breadcrumb_ancestry = if mode_info.host_fullscreen == Some(true) {
@@ -36,7 +36,7 @@ pub fn tab_line(
         dimmed,
         breadcrumb_ancestry,
         nested_hint,
-        hostname: hostname.to_owned(),
+        message: message.to_owned(),
     };
 
     let builder = TabLineBuilder::new(config, mode_info.style.colors, mode_info.capabilities, cols);
@@ -78,7 +78,7 @@ pub struct TabLineConfig {
     pub dimmed: bool,
     pub breadcrumb_ancestry: Vec<String>,
     pub nested_hint: NestedSessionHint,
-    pub hostname: String,
+    pub message: String,
 }
 
 fn calculate_total_length(parts: &[LinePart]) -> usize {
@@ -471,25 +471,35 @@ impl RightSideElementsBuilder {
         let mut elements = Vec::new();
 
         // We intentionally render nothing else on the right side (no swap-layout
-        // status, no mode pill, no tooltip pill) for a minimal bar. Just the hostname.
-        if let Some(hostname) = self.create_hostname_part(&config.hostname, available_space) {
-            elements.push(hostname);
+        // status, no mode pill, no tooltip pill) for a minimal bar. Just the message.
+        if let Some(message) = self.create_message_part(&config.message, available_space) {
+            elements.push(message);
         }
 
         elements
     }
 
-    fn create_hostname_part(&self, hostname: &str, max_len: usize) -> Option<LinePart> {
-        if hostname.is_empty() || hostname.width() > max_len {
+    fn create_message_part(&self, message: &str, max_len: usize) -> Option<LinePart> {
+        if message.is_empty() || message.width() + 4 > max_len {
             return None;
         }
 
         let bg = self.palette.ribbon_unselected.background;
         let base = self.palette.ribbon_unselected.base;
-        let display = format!(" {} ", hostname);
+        let display = message;
+        let rounded = ansi_term::Style::new()
+            .fg(match bg {
+                PaletteColor::Rgb((r, g, b)) => ansi_term::Color::RGB(r, g, b),
+                PaletteColor::EightBit(c) => ansi_term::Color::Fixed(c),
+            });
         let line_part = LinePart {
-            part: style!(base, bg).bold().paint(&display).to_string(),
-            len: display.width(),
+            part: format!(
+                "{}{}{}",
+                rounded.paint(""),
+                style!(base, bg).bold().paint(format!(" {} ", display)),
+                rounded.paint("")
+            ),
+            len: display.width() + 4,
             tab_index: None,
         };
         Some(line_part)
@@ -686,5 +696,5 @@ impl TabLineBuilder {
 }
 
 pub fn tab_separator(_capabilities: PluginCapabilities) -> &'static str {
-    "│" // solid rectangular chip divider between tabs
+    " " // placeholder; rounded corners are drawn in render_tab
 }

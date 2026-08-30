@@ -20,7 +20,7 @@ use crate::tooltip::TooltipRenderer;
 
 const CONFIG_IS_TOOLTIP: &str = "is_tooltip";
 const CONFIG_TOGGLE_TOOLTIP_KEY: &str = "tooltip";
-const CONFIG_HOSTNAME: &str = "hostname";
+const CONFIG_MESSAGE: &str = "message";
 const MSG_TOGGLE_TOOLTIP: &str = "toggle_tooltip";
 const MSG_TOGGLE_PERSISTED_TOOLTIP: &str = "toggle_persisted_tooltip";
 const MSG_LAUNCH_TOOLTIP: &str = "launch_tooltip_if_not_launched";
@@ -53,7 +53,7 @@ struct State {
     config: BTreeMap<String, String>,
     own_plugin_id: Option<u32>,
     toggle_tooltip_key: Option<String>,
-    hostname: String,
+    message: String,
 
     // Tooltip state
     is_tooltip: bool,
@@ -165,8 +165,8 @@ impl State {
                 self.toggle_tooltip_key = Some(tooltip_toggle_key.clone());
             }
         }
-        self.hostname = configuration
-            .get(CONFIG_HOSTNAME)
+        self.message = configuration
+            .get(CONFIG_MESSAGE)
             .cloned()
             .unwrap_or_default();
 
@@ -556,7 +556,7 @@ impl State {
             cols,
             self.toggle_tooltip_key.clone(),
             self.tooltip_is_active,
-            &self.hostname,
+            &self.message,
         );
         self.tab_line = tab_line_output.parts;
         self.breadcrumb_range = tab_line_output.breadcrumb_range;

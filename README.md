@@ -22,8 +22,8 @@ terminal shows through.
 - Transparent bar background (terminal shows through)
 - Solid `│` chips between tab pills in place of powerline arrows
 - Colored tab pills (kept from stock) on a transparent bar
-- Optional hostname shown on the right-hand side, colored like inactive tabs
-  (see [Hostname](#hostname-optional))
+- Optional right-hand message/status text, colored like inactive tabs
+  (see [Message (optional)](#message-optional))
 
 #### Removed
 - The `Zellij` label in the top-left corner
@@ -31,27 +31,27 @@ terminal shows through.
 - The `LOCKED` / `NORMAL` mode pill on the far right
 - The `F1 Tooltip` pill on the far right (the tooltip feature itself still works)
 
-## Hostname (optional)
+## Message (optional)
 
-The plugin can render the machine's hostname on the right-hand side of the status bar,
-colored to match inactive tabs. It is **optional**: if you don't configure it, the right
-side stays empty and the bar looks exactly as before.
+The plugin can render an arbitrary message (e.g. your machine's hostname) on the
+right-hand side of the status bar, colored to match inactive tabs. It is **optional**: if
+you don't configure it, the right side stays empty and the bar looks exactly as before.
 
-It is read from the plugin's configuration — add a `hostname` key to the `compact-bar`
+It is read from the plugin's configuration — add a `message` key to the `compact-bar`
 block in `~/.config/zellij/config.kdl`:
 
 ```kdl
 plugins {
     compact-bar location="file:~/.config/zellij/plugins/zj-status-bar.wasm" {
         tooltip "F1"
-        hostname "AA0438IT"
+        message "my message"
     }
 }
 ```
 
-Replace `AA0438IT` with whatever string you want to display (it doesn't have to be your
-actual hostname). A restart is required for the change to take effect. Omit the `hostname`
-key entirely to keep the bar minimal.
+Replace `my message` with whatever string you want to display (it doesn't have to be a
+hostname — it's just free text). A restart is required for the change to take effect. Omit
+the `message` key entirely to keep the bar minimal.
 
 ## Requirements
 
