@@ -1,12 +1,13 @@
-# ⚡ zj-status-bar ⚡
+# ⚡ zellij-compact-minimal-status-bar ⚡
 
-A opinionated, minimal transparent status bar plugin for [`zellij`](https://zellij.dev/), built on top of
+A opinionated, minimal compact transparent status bar plugin for [`zellij`](https://zellij.dev/), built on top of
 the built-in `compact-bar` plugin (zellij `0.45.x`), repackaged and customized.
 
+zellij-compact-status-bar:
+![image](https://github.com/YMan84/zellij-compact-minimal-status-bar/blob/main/assets/compact-bar.jpg?raw=true)
 
-![image](https://github.com/YMan84/zellij-minimal-status-bar/blob/main/assets/compact-bar.jpg?raw=true)
-
-![image](https://github.com/YMan84/zellij-minimal-status-bar/blob/main/assets/stock-compact-bar.jpg?raw=true)
+stock compact:
+![image](https://github.com/YMan84/zellij-compact-minimal-status--bar/blob/main/assets/stock-compact-bar.jpg?raw=true)
 
 
 ## What it looks like / does
