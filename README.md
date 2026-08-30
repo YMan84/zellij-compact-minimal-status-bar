@@ -4,6 +4,10 @@ A opinionated, minimal transparent status bar plugin for [`zellij`](https://zell
 the built-in `compact-bar` plugin (zellij `0.45.x`), repackaged and customized.
 
 
+![image](https://github.com/YMan84/zellij-minimal-status-bar/blob/main/assets/compact-bar.jpg?raw=true)
+
+![image](https://github.com/YMan84/zellij-minimal-status-bar/blob/main/assets/stock-compact-bar.jpg?raw=true)
+
 
 ## What it looks like / does
 
